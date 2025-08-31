@@ -47,7 +47,6 @@ jobs:
             body=$(echo "$response" | sed -n '/^\r$/{:a;n;p;ba}' || true)
             if [[ "$location" != *"$TARGET_URL"* ]]; then
               failed_hosts+=("$host")
-              echo "Checking: $host ❌ | Status: $body"
               printf "::error::Checking %s ❌ | %s\n" "${host}" "${body}"
             else
               echo "Checking: $host ✅"
