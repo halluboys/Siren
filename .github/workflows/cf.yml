@@ -37,14 +37,22 @@ jobs:
             echo "has_failed_hosts=true" >> $GITHUB_OUTPUT
             exit 0
           fi
+          
+          countries=("DE" "NL" "US" "SG" "FR")
+          
           IFS=',' read -ra hosts <<< "$HOSTS"
           failed_hosts=()
           for host in "${hosts[@]}"; do
             host=$(echo "$host" | xargs)
-            response=$(curl -s -i -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Host: $host" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" "https://$host/free/US" 2>&1 || true)
+            
+            random_country=${countries[$RANDOM % ${#countries[@]}]}
+            path="/free/$random_country"
+            
+            response=$(curl -s -i -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Host: $host" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" "https://$host$path" 2>&1 || true)
             location=$(echo "$response" | grep -i "location:" || true)
             status_code=$(echo "$response" | grep -i "^HTTP/" | awk '{print $2}' || echo "N/A")
             body=$(echo "$response" | sed -n '/^\r$/{:a;n;p;ba}' || true)
+            
             if [[ "$location" != *"$TARGET_URL"* ]]; then
               failed_hosts+=("$host")
               printf "::error::%s ❌ | %s\n" "${host}" "${body}"
@@ -52,6 +60,7 @@ jobs:
               echo "$host ✅"
             fi
           done
+          
           if [ ${#failed_hosts[@]} -ne 0 ]; then
             echo "has_failed_hosts=true" >> $GITHUB_OUTPUT
           else
